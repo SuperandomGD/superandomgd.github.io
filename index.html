@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SuperandomGD's page</title>
+  <link rel="icon" type="image/png" href="cube_30.png">
+  <style>
+    body {
+      background-color: #18181b;
+      background-image: url("background.png");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      color: #f4f4f5;
+      font-family: Arial, Helvetica, sans-serif;
+      margin: 0;
+      padding: 30px 15px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 650px;
+      width: 100%;
+    }
+
+    .card {
+      background-color: rgba(36, 36, 41, 0.88);
+      backdrop-filter: blur(6px);
+      border: 2px solid #383842;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .header-card {
+      text-align: center;
+      border-top: 4px solid rgb(255, 0, 0);
+    }
+
+    h1 { margin-top: 0; font-size: 26px; }
+    h2 { margin-top: 0; font-size: 18px; color: rgb(255, 255, 0); }
+
+    .warning-text {
+      font-size: 12px;
+      color: rgb(255, 0, 0);
+      font-weight: bold;
+      margin-top: -10px;
+      margin-bottom: 15px;
+    }
+
+    .cube-img {
+      width: 140px;
+      height: 140px;
+      border-radius: 16px;
+      border: 3px solid #000000;
+      margin: 15px 0;
+    }
+
+    .yt-btn {
+      display: inline-block;
+      background-color: rgb(255, 0, 0);
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 12px 24px;
+      border-radius: 8px;
+      transition: transform 0.15s;
+    }
+
+    .yt-btn:hover { transform: scale(1.03); }
+
+    .input-row { display: flex; gap: 10px; }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #44444f;
+      background-color: #141417;
+      color: #ffffff;
+      font-size: 15px;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: rgb(255, 255, 0);
+    }
+
+    button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background-color: rgb(255, 255, 0);
+      color: #000000;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    button:hover { transform: scale(1.03); }
+
+    #chatBox {
+      background-color: #141417;
+      border: 1px solid #383842;
+      border-radius: 8px;
+      padding: 14px;
+      height: 180px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .status-line { margin-bottom: 0; color: #a1a1aa; }
+    .status-line strong { color: rgb(255, 255, 0); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card header-card">
+      <h1>Welcome to the official website of <span style="color: rgb(255, 0, 0);">SuperandomGD</span></h1>
+      <p>This is my community space where we go crazy together!</p>
+      <img src="cube_30.png" alt="SuperandomGD icon" class="cube-img">
+      <br>
+      <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="yt-btn">Subscribe on YouTube</a>
+    </div>
+
+    <div class="card">
+      <h2>Your Username</h2>
+      <p class="warning-text">WARNING: BE AWARE THAT THIS IS NOT SECURED BY A PASSWORD.</p>
+      <div class="input-row">
+        <input type="text" id="Username" placeholder="Your Name">
+        <button onclick="saveUsername()">Get in</button>
+      </div>
+      <p class="status-line">Logged in as: <strong id="displayUser">Guest</strong></p>
+    </div>
+
+    <div class="card">
+      <h2>Community Chat</h2>
+      <div id="chatBox">Loading chat...</div>
+      <div class="input-row">
+        <input type="text" id="Message" placeholder="Type your message...">
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+    <script>
+    const DB_URL = "https://superandomgd-cloud-default-rtdb.europe-west1.firebasedatabase.app/messages.json";
+
+    // Username stays saved locally per visitor
+    let username = localStorage.getItem("savedUsername") || "";
+    if (username !== "") {
+      document.getElementById("displayUser").textContent = username;
+    }
+
+    function saveUsername() {
+      username = document.getElementById("Username").value.trim();
+      localStorage.setItem("savedUsername", username);
+      document.getElementById("displayUser").textContent = username || "Guest";
+    }
+
+    // Send a new message to the Firebase server
+    async function sendMessage() {
+      let messageInput = document.getElementById("Message");
+      let message = messageInput.value.trim();
+      if (message === "") return;
+
+      let sender = username || "Guest";
+      messageInput.value = "";
+
+      await fetch(DB_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user: sender,
+          text: message
+        })
+      });
+
+      loadMessages(); // Refresh chat immediately after sending
+    }
+
+    // Fetch messages from the Firebase server
+    async function loadMessages() {
+      try {
+        let response = await fetch(DB_URL);
+        let data = await response.json();
+        let chatBox = document.getElementById("chatBox");
+
+        if (!data) {
+          chatBox.innerText = "No messages yet. Say hi!";
+          return;
+        }
+
+        let allMessages = "";
+        for (let id in data) {
+          allMessages += data[id].user + ": " + data[id].text + "\n";
+        }
+
+        // Only auto-scroll if new messages arrived
+        let isNew = chatBox.innerText !== allMessages;
+        chatBox.innerText = allMessages;
+        if (isNew) {
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      } catch (err) {
+        document.getElementById("chatBox").innerText = "Error connecting to chat server.";
+      }
+    }
+
+    // Load right away, then check for new messages every 2 seconds
+    loadMessages();
+    setInterval(loadMessages, 2000);
+  </script>
+
+</body>
+</html>
+
+
